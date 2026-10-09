@@ -22,7 +22,7 @@ PACKAGES = [
     # Temel Masaüstü & Wayland Katmanı
     "labwc", "waybar", "wofi", "foot", "pcmanfm-qt", "mako", "grim", "slurp", "wl-clipboard",
     # Temalar & İkonlar
-    "arc-gtk-theme", "papirus-icon-theme", "ttf-liberation", "ttf-dejavu",
+    "gnome-themes-extra", "papirus-icon-theme", "ttf-liberation", "ttf-dejavu",
     # Uygulamalar & Görüntüleyiciler
     "librewolf", "mpv", "imv", "firejail", "apparmor", "iptables",
     # Ağ & Sistem Araçları
