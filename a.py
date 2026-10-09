@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import subprocess
+import urllib.request
 
 def run(cmd):
     print(f"--> [Çalıştırılıyor]: {cmd}")
@@ -12,43 +13,75 @@ def write_file(path, content, mode=0o644):
         f.write(content.strip() + "\n")
     os.chmod(path, mode)
 
-print("=== Ultra Lite Arch + LabWC Görsel & Sistem Düzeltmesi ===")
+print("=== Ultra Lite Arch + LabWC Font & Başlat Menüsü Düzeltmesi ===")
 
 USER_HOME = "/home/chaosx"
 
-# 1. PAKET LİSTESİ
+# 1. PAKET LİSTESİ (Simgeler için Font Awesome eklendi)
 PACKAGES = [
     "labwc", "waybar", "wofi", "foot", "pcmanfm-qt", "mako", "grim", "slurp", "wl-clipboard",
-    "gnome-themes-extra", "papirus-icon-theme", "ttf-liberation", "ttf-dejavu",
+    "gnome-themes-extra", "papirus-icon-theme", "ttf-liberation", "ttf-dejavu", "ttf-font-awesome",
     "librewolf", "mpv", "imv", "firejail", "apparmor", "iptables",
     "networkmanager", "cifs-utils", "qemu-desktop", "virt-manager", "dnsmasq",
-    "swaybg", "xdg-user-dirs"
+    "swaybg", "xdg-user-dirs", "wget"
 ]
 
-print("[+] Paketler doğrulanıyor...")
+print("[+] Font ve Sistem Paketleri Kuruluyor...")
 run(f"pacman -S --needed --noconfirm {' '.join(PACKAGES)}")
 
-# 2. STANDART KULLANICI KLASÖRLERİ
+# 2. MASAÜSTÜ DIZINI VE KISAYOLLAR
 run("sudo -u chaosx xdg-user-dirs-update")
-run(f"mkdir -p {USER_HOME}/Masaüstü {USER_HOME}/Desktop {USER_HOME}/İndirilenler {USER_HOME}/Applications {USER_HOME}/securityai {USER_HOME}/.config/firejail {USER_HOME}/.config/wallpapers")
+DESKTOP_DIR = f"{USER_HOME}/Desktop"
+run(f"mkdir -p {DESKTOP_DIR} {USER_HOME}/.config/wallpapers")
 
-# 3. MAT KOYU DUVAR KAĞIDI OLUŞTURMA (Temiz Python Dosya Yazımı)
-ppm_path = f"{USER_HOME}/.config/wallpapers/dark.ppm"
-header = b"P6\n1920 1080\n255\n"
-pixel = bytes([24, 26, 31])
-with open(ppm_path, "wb") as f:
-    f.write(header + pixel * (1920 * 1080))
+write_file(f"{DESKTOP_DIR}/librewolf.desktop", """[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LibreWolf
+Exec=librewolf
+Icon=librewolf
+Terminal=false
+""", mode=0o755)
+
+write_file(f"{DESKTOP_DIR}/foot.desktop", """[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Uçbirim
+Exec=foot
+Icon=utilities-terminal
+Terminal=false
+""", mode=0o755)
+
+write_file(f"{DESKTOP_DIR}/pcmanfm-qt.desktop", """[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dosya Yöneticisi
+Exec=pcmanfm-qt
+Icon=system-file-manager
+Terminal=false
+""", mode=0o755)
+
+# 3. DUVAR KAĞIDI
+WALLPAPER_PATH = f"{USER_HOME}/.config/wallpapers/wallpaper.jpg"
+try:
+    url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop"
+    urllib.request.urlretrieve(url, WALLPAPER_PATH)
+except Exception:
+    header = b"P6\n1920 1080\n255\n"
+    pixel = bytes([24, 26, 31])
+    with open(WALLPAPER_PATH, "wb") as f:
+        f.write(header + pixel * (1920 * 1080))
 
 # 4. LABWC AUTOSTART
 write_file(f"{USER_HOME}/.config/labwc/autostart", f"""
-swaybg -i {USER_HOME}/.config/wallpapers/dark.ppm -m fill &
+swaybg -i {WALLPAPER_PATH} -m fill &
 waybar &
 mako &
 gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark'
 gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
 """)
 
-# 5. LABWC SAĞ TIK MENÜSÜ
+# 5. LABWC MENÜSÜ
 write_file(f"{USER_HOME}/.config/labwc/menu.xml", """<?xml version="1.0" encoding="UTF-8"?>
 <labwc_menu>
   <menu id="root-menu" label="Ana Menü">
@@ -64,7 +97,7 @@ write_file(f"{USER_HOME}/.config/labwc/menu.xml", """<?xml version="1.0" encodin
 </labwc_menu>
 """)
 
-# 6. WOFI BAŞLAT MENÜSÜ STİLİ (Sol Alt Köşe)
+# 6. WOFI MENÜSÜ
 write_file(f"{USER_HOME}/.config/wofi/config", """
 mode=drun
 width=320
@@ -98,21 +131,6 @@ window {
     background-color: #282c34;
     border-radius: 4px;
 }
-#inner-box {
-    margin: 5px;
-    background-color: transparent;
-}
-#outer-box {
-    margin: 5px;
-    background-color: transparent;
-}
-#scroll {
-    margin: 0px;
-}
-#text {
-    margin: 4px;
-    color: #d3dae3;
-}
 #entry:selected {
     background-color: #5294e2;
     border-radius: 4px;
@@ -122,7 +140,7 @@ window {
 }
 """)
 
-# 7. WAYBAR ALT PANEL
+# 7. WAYBAR (DÜZELTİLMİŞ TEMİZ BAŞLAT BUTONU)
 write_file(f"{USER_HOME}/.config/waybar/config", """
 {
     "layer": "top",
@@ -133,7 +151,7 @@ write_file(f"{USER_HOME}/.config/waybar/config", """
     "modules-right": ["cpu", "memory", "clock"],
     
     "custom/menu": {
-        "format": "  Başlat ",
+        "format": " ☰ Başlat ",
         "on-click": "wofi --show drun"
     },
     "wlr/taskbar": {
@@ -149,7 +167,7 @@ write_file(f"{USER_HOME}/.config/waybar/config", """
 write_file(f"{USER_HOME}/.config/waybar/style.css", """
 * {
     border: none;
-    font-family: sans-serif;
+    font-family: FontAwesome, sans-serif;
     font-size: 13px;
 }
 window#waybar {
@@ -157,10 +175,12 @@ window#waybar {
     color: #ffffff;
 }
 #custom-menu {
-    background-color: #2d313b;
-    color: #5294e2;
+    background-color: #5294e2;
+    color: #ffffff;
     font-weight: bold;
     padding: 0 12px;
+    border-radius: 4px;
+    margin: 3px;
 }
 #taskbar button {
     padding: 0 10px;
@@ -180,4 +200,4 @@ window#waybar {
 # 8. İZİNLER
 run(f"chown -R chaosx:chaosx {USER_HOME}")
 
-print("\n=== TÜM GÖRSEL DÜZELTMELER BAŞARIYLA UYGULANDI! ===")
+print("\n=== FONT VE BAŞLAT MENÜSÜ DÜZELTİLDİ! ===")
