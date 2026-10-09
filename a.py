@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import subprocess
-import urllib.request
 
 def run(cmd):
     print(f"--> [Çalıştırılıyor]: {cmd}")
@@ -13,76 +12,79 @@ def write_file(path, content, mode=0o644):
         f.write(content.strip() + "\n")
     os.chmod(path, mode)
 
-print("=== Ultra Lite Arch + Masaüstü, Ses & Uygulama Tamamlayıcı ===")
+print("=== Ultra Lite Arch + Masaüstü Simgeleri & Duvar Kağıdı Onarımı ===")
 
 USER_HOME = "/home/chaosx"
 
-# 1. TAM PAKET LİSTESİ (Ses, Resim, Arşiv, Font)
+# 1. PAKET LİSTESİ
 PACKAGES = [
     "labwc", "waybar", "wofi", "foot", "pcmanfm-qt", "mako", "grim", "slurp", "wl-clipboard",
     "gnome-themes-extra", "papirus-icon-theme", "ttf-liberation", "ttf-dejavu", "ttf-font-awesome",
     "librewolf", "mpv", "imv", "eog", "file-roller", "firejail", "apparmor", "iptables",
     "networkmanager", "cifs-utils", "qemu-desktop", "virt-manager", "dnsmasq",
-    "swaybg", "xdg-user-dirs", "wget", "pipewire", "pipewire-pulse", "wireplumber", "pavucontrol"
+    "swaybg", "xdg-user-dirs", "pipewire", "pipewire-pulse", "wireplumber", "pavucontrol"
 ]
 
-print("[+] Paketler yükleniyor...")
+print("[+] Paketler doğrulanıyor...")
 run(f"pacman -S --needed --noconfirm {' '.join(PACKAGES)}")
 
-# 2. XDG KLASÖRLERİ & MASAÜSTÜ SİMGELERİ
+# 2. XDG MASAÜSTÜ KLASÖRLERİ (Hem Desktop hem Masaüstü Garantilendi)
 run("sudo -u chaosx xdg-user-dirs-update")
-DESKTOP_DIR = f"{USER_HOME}/Desktop"
-run(f"mkdir -p {DESKTOP_DIR} {USER_HOME}/.config/wallpapers")
+DESKTOP_1 = f"{USER_HOME}/Desktop"
+DESKTOP_2 = f"{USER_HOME}/Masaüstü"
+run(f"mkdir -p {DESKTOP_1} {DESKTOP_2} {USER_HOME}/.config/wallpapers")
 
-write_file(f"{DESKTOP_DIR}/librewolf.desktop", """[Desktop Entry]
+# Masaüstü Kısayolları (.desktop dosyaları)
+desktop_entry_librewolf = """[Desktop Entry]
 Version=1.0
 Type=Application
 Name=LibreWolf
 Exec=librewolf
 Icon=librewolf
 Terminal=false
-""", mode=0o755)
+"""
 
-write_file(f"{DESKTOP_DIR}/foot.desktop", """[Desktop Entry]
+desktop_entry_foot = """[Desktop Entry]
 Version=1.0
 Type=Application
 Name=Uçbirim
 Exec=foot
 Icon=utilities-terminal
 Terminal=false
-""", mode=0o755)
+"""
 
-write_file(f"{DESKTOP_DIR}/pcmanfm-qt.desktop", """[Desktop Entry]
+desktop_entry_pcmanfm = """[Desktop Entry]
 Version=1.0
 Type=Application
 Name=Dosya Yöneticisi
 Exec=pcmanfm-qt
 Icon=system-file-manager
 Terminal=false
-""", mode=0o755)
+"""
 
-# 3. DUVAR KAĞIDI İNDİRME
-WALLPAPER_PATH = f"{USER_HOME}/.config/wallpapers/wallpaper.jpg"
-try:
-    url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop"
-    urllib.request.urlretrieve(url, WALLPAPER_PATH)
-except Exception:
-    header = b"P6\n1920 1080\n255\n"
-    pixel = bytes([24, 26, 31])
-    with open(WALLPAPER_PATH, "wb") as f:
-        f.write(header + pixel * (1920 * 1080))
+for target_dir in [DESKTOP_1, DESKTOP_2]:
+    write_file(f"{target_dir}/librewolf.desktop", desktop_entry_librewolf, mode=0o755)
+    write_file(f"{target_dir}/foot.desktop", desktop_entry_foot, mode=0o755)
+    write_file(f"{target_dir}/pcmanfm-qt.desktop", desktop_entry_pcmanfm, mode=0o755)
 
-# 4. LABWC AUTOSTART (Masaüstü Simgeleri & Swaybg)
+# 3. GARANTİ MAT KOYU DUVAR KAĞIDI (PNG Formatında)
+ppm_path = f"{USER_HOME}/.config/wallpapers/dark.ppm"
+header = b"P6\n1920 1080\n255\n"
+pixel = bytes([25, 30, 40])  # Koyu Mat Lacivert/Gri Tonu
+with open(ppm_path, "wb") as f:
+    f.write(header + pixel * (1920 * 1080))
+
+# 4. LABWC AUTOSTART (Masaüstü Simgeleri + Swaybg Garanti Başlatma)
 write_file(f"{USER_HOME}/.config/labwc/autostart", f"""
-swaybg -i {WALLPAPER_PATH} -m fill &
-pcmanfm-qt --desktop &
+swaybg -i {USER_HOME}/.config/wallpapers/dark.ppm -m fill &
+pcmanfm-qt --desktop --profile=lxqt &
 waybar &
 mako &
 gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark'
 gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
 """)
 
-# 5. LABWC MENÜSÜ
+# 5. LABWC MASAÜSTÜ MENÜSÜ
 write_file(f"{USER_HOME}/.config/labwc/menu.xml", """<?xml version="1.0" encoding="UTF-8"?>
 <labwc_menu>
   <menu id="root-menu" label="Ana Menü">
@@ -99,7 +101,7 @@ write_file(f"{USER_HOME}/.config/labwc/menu.xml", """<?xml version="1.0" encodin
 </labwc_menu>
 """)
 
-# 6. WOFI MASAÜSTÜ MENÜSÜ
+# 6. WOFI VE WAYBAR
 write_file(f"{USER_HOME}/.config/wofi/config", """
 mode=drun
 width=320
@@ -124,7 +126,6 @@ window { margin: 0px; border: 2px solid #5294e2; background-color: #1e2229; bord
 #entry:selected #text { color: #ffffff; }
 """)
 
-# 7. WAYBAR (SES DENETİMİ EKLENDİ)
 write_file(f"{USER_HOME}/.config/waybar/config", """
 {
     "layer": "top",
@@ -161,7 +162,7 @@ window#waybar { background-color: #1e2229; color: #ffffff; }
 #pulseaudio, #cpu, #memory, #clock { padding: 0 10px; background-color: #282c34; margin-left: 2px; }
 """)
 
-# 8. İZİNLER
+# 7. İZİNLER
 run(f"chown -R chaosx:chaosx {USER_HOME}")
 
-print("\n=== TÜM SİSTEM TAMAMLANDI! ===")
+print("\n=== MASAÜSTÜ SİMGELERİ VE DUVAR KAĞIDI DÜZELTİLDİ! ===")
