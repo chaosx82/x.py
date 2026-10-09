@@ -2,93 +2,77 @@
 import os
 import subprocess
 
-TARGET = "/mnt" if os.path.exists("/mnt/etc") else ""
-
 def run(cmd):
     print(f"--> [Çalıştırılıyor]: {cmd}")
     subprocess.run(cmd, shell=True, check=True)
 
 def write_file(path, content, mode=0o644):
-    full_path = os.path.join(TARGET, path.lstrip("/"))
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    with open(full_path, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         f.write(content.strip() + "\n")
-    os.chmod(full_path, mode)
+    os.chmod(path, mode)
 
-print("=== Ultra Lite Arch + LabWC Kurulum Betiği Başlatılıyor ===")
+print("=== Ultra Lite Arch + LabWC Görsel & Sistem Yapılandırması ===")
+
+USER_HOME = "/home/chaosx"
 
 # 1. PAKET LİSTESİ VE KURULUM
 PACKAGES = [
-    # Temel Masaüstü & Wayland Katmanı
     "labwc", "waybar", "wofi", "foot", "pcmanfm-qt", "mako", "grim", "slurp", "wl-clipboard",
-    # Temalar & İkonlar
     "gnome-themes-extra", "papirus-icon-theme", "ttf-liberation", "ttf-dejavu",
-    # Uygulamalar & Görüntüleyiciler
     "librewolf", "mpv", "imv", "firejail", "apparmor", "iptables",
-    # Ağ & Sistem Araçları
     "networkmanager", "cifs-utils", "qemu-desktop", "virt-manager", "dnsmasq"
 ]
 
-print("[+] Paketler yükleniyor...")
+print("[+] Paketler doğrulanıyor...")
 run(f"pacman -S --needed --noconfirm {' '.join(PACKAGES)}")
 
-# 2. ŞİFREMİZ/OTOMATİK GİRİŞ (TTY1 -> LabWC)
+# 2. AUTOLOGIN & TTY1
 write_file("/etc/systemd/system/getty@tty1.service.d/override.conf", """
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin chaosx --noclear %I $TERM
 """)
 
-# .bash_profile üzerinden TTY1'de otomatik LabWC başlatma
-write_file("/home/chaosx/.bash_profile", """
+write_file(f"{USER_HOME}/.bash_profile", """
 if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
   exec labwc
 fi
 """)
 
-# 3. NETWORKMANAGER & DISABLED IPV6
-write_file("/etc/NetworkManager/conf.d/00-disable-ipv6.conf", """
-[main]
-dns=default
-
-[connection]
-ipv6.method=disabled
-""")
-
-conn_file = "/etc/NetworkManager/system-connections/Kablolu Ag.nmconnection"
-write_file(conn_file, """
-[connection]
-id=Kablolu Ag
-uuid=98765432-1111-2222-3333-444455556666
-type=ethernet
-autoconnect=true
-
-[ethernet]
-
-[ipv4]
-method=auto
-
-[ipv6]
-method=disabled
-""", mode=0o600)
-
-# 4. GÖRSEL TEMA VE XP-TARZI WAYBAR PANEL YAPILANDIRMASI
-write_file("/home/chaosx/.config/labwc/autostart", """
+# 3. LABWC AUTOSTART & TEMA
+write_file(f"{USER_HOME}/.config/labwc/autostart", """
 waybar &
 mako &
 gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark'
 gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
 """)
 
-# Waybar Konfigürasyonu (Alt Panel)
-write_file("/home/chaosx/.config/waybar/config", """
+# 4. SAĞ TIK MENÜSÜ (LABWC MENU.XML)
+write_file(f"{USER_HOME}/.config/labwc/menu.xml", """<?xml version="1.0" encoding="UTF-8"?>
+<labwc_menu>
+  <menu id="root-menu" label="Ana Menü">
+    <item label="Uçbirim (Terminal)"><action name="Execute" command="foot"/></item>
+    <item label="Dosya Yöneticisi"><action name="Execute" command="pcmanfm-qt"/></item>
+    <item label="LibreWolf Tarayıcı"><action name="Execute" command="librewolf"/></item>
+    <separator/>
+    <item label="Uygulama Menüsü (Wofi)"><action name="Execute" command="wofi --show drun"/></item>
+    <separator/>
+    <item label="Yeniden Yapılandır"><action name="Reconfigure"/></item>
+    <item label="Çıkış"><action name="Exit"/></item>
+  </menu>
+</labwc_menu>
+""")
+
+# 5. WAYBAR ALT PANEL (XP/MAT SIYAH TEMA)
+write_file(f"{USER_HOME}/.config/waybar/config", """
 {
     "layer": "top",
     "position": "bottom",
-    "height": 30,
+    "height": 32,
     "modules-left": ["custom/menu", "wlr/taskbar"],
     "modules-center": [],
-    "modules-right": ["cpu", "memory", "network", "pulseaudio", "clock"],
+    "modules-right": ["cpu", "memory", "clock"],
     
     "custom/menu": {
         "format": "  Başlat ",
@@ -100,17 +84,14 @@ write_file("/home/chaosx/.config/waybar/config", """
     },
     "cpu": { "format": "CPU: {usage}%" },
     "memory": { "format": "RAM: {percentage}%" },
-    "network": { "format": "Ağ: {ifname}" },
-    "pulseaudio": { "format": "Ses: {volume}%" },
-    "clock": { "format": "{:%H:%M | %d.%m.%Y}" }
+    "clock": { "format": "{:%H:%M - %d.%m.%Y}" }
 }
 """)
 
-# Waybar Stil (Arc-Dark Mat Siyah Teması)
-write_file("/home/chaosx/.config/waybar/style.css", """
+write_file(f"{USER_HOME}/.config/waybar/style.css", """
 * {
     border: none;
-    font-family: Liberation Sans, sans-serif;
+    font-family: sans-serif;
     font-size: 13px;
 }
 window#waybar {
@@ -121,30 +102,25 @@ window#waybar {
     background-color: #2d313b;
     color: #5294e2;
     font-weight: bold;
-    padding: 0 10px;
+    padding: 0 12px;
 }
 #taskbar button {
-    padding: 0 8px;
+    padding: 0 10px;
     color: #d3dae3;
 }
 #taskbar button.active {
     background-color: #383c4a;
     border-bottom: 2px solid #5294e2;
 }
-#cpu, #memory, #network, #pulseaudio, #clock {
+#cpu, #memory, #clock {
     padding: 0 10px;
     background-color: #282c34;
     margin-left: 2px;
 }
 """)
 
-# 5. UYGULAMA İZOLASYONLARI VE DIŞ KLASÖRLER
-run("mkdir -p /home/chaosx/Applications /home/chaosx/securityai /home/chaosx/.config/firejail")
+# 6. KLASÖR VE İZİNLER
+run(f"mkdir -p {USER_HOME}/Applications {USER_HOME}/securityai {USER_HOME}/.config/firejail")
+run(f"chown -R chaosx:chaosx {USER_HOME}")
 
-# AppImage Update Kontrolünü Kapatma
-write_file("/home/chaosx/.config/firejail/firejail.config", "no-appimage-update yes\n")
-
-# İzinlerin ayarlanması
-run("chown -R chaosx:chaosx /home/chaosx")
-
-print("\n=== KURULUM TAMAMLANDI! ===")
+print("\n=== TÜM AYARLAR BAŞARIYLA YAZILDI! ===")
